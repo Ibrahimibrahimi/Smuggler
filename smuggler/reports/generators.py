@@ -124,68 +124,68 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <title>HTTP Smuggler Report — {timestamp}</title>
 <style>
   :root {{
-    --bg: #0a0d14;
-    --surface: #111520;
-    --surface2: #1a1f30;
-    --border: #252a3d;
-    --accent: #00d4ff;
-    --accent2: #7c3aed;
-    --text: #e2e8f0;
-    --muted: #64748b;
-    --critical: #ef4444;
-    --high: #f97316;
-    --medium: #eab308;
-    --low: #3b82f6;
-    --success: #22c55e;
+    --bg: #FAF8F5;
+    --surface: #FFFFFF;
+    --surface2: #F5F0EB;
+    --border: #E8E0D8;
+    --accent: #C47A3A;
+    --accent2: #8B6F5C;
+    --text: #3D3229;
+    --muted: #9A8C80;
+    --critical: #C0392B;
+    --high: #D4731A;
+    --medium: #B8960F;
+    --low: #4A7FB5;
+    --success: #5A9E6F;
   }}
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }}
-  .container {{ max-width: 1100px; margin: 0 auto; padding: 40px 24px; }}
+  body {{ background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }}
+  .container {{ max-width: 1100px; margin: 0 auto; padding: 48px 32px; }}
 
-  .report-header {{ border-bottom: 1px solid var(--border); padding-bottom: 32px; margin-bottom: 40px; }}
-  .report-header h1 {{ font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-  .report-header .meta {{ color: var(--muted); font-size: 0.875rem; margin-top: 6px; }}
+  .report-header {{ border-bottom: 1px solid var(--border); padding-bottom: 36px; margin-bottom: 44px; }}
+  .report-header h1 {{ font-size: 2rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }}
+  .report-header .meta {{ color: var(--muted); font-size: 0.875rem; margin-top: 8px; }}
 
   .summary-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 48px; }}
-  .stat-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }}
-  .stat-card .num {{ font-size: 2.5rem; font-weight: 900; line-height: 1; }}
-  .stat-card .label {{ color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }}
+  .stat-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }}
+  .stat-card .num {{ font-size: 2.5rem; font-weight: 800; line-height: 1; }}
+  .stat-card .label {{ color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 6px; font-weight: 500; }}
   .stat-card.vuln .num {{ color: var(--critical); }}
   .stat-card.critical .num {{ color: var(--critical); }}
   .stat-card.high .num {{ color: var(--high); }}
   .stat-card.ok .num {{ color: var(--success); }}
 
-  .target-block {{ background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 28px; overflow: hidden; }}
+  .target-block {{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 28px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }}
   .target-header {{ padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }}
-  .target-url {{ font-family: 'Consolas', monospace; font-size: 1rem; font-weight: 700; color: var(--accent); word-break: break-all; }}
-  .badge {{ display: inline-block; border-radius: 6px; padding: 3px 10px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }}
-  .badge-vuln {{ background: rgba(239,68,68,0.15); color: var(--critical); border: 1px solid var(--critical); }}
-  .badge-safe {{ background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid var(--success); }}
+  .target-url {{ font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.95rem; font-weight: 600; color: var(--accent); word-break: break-all; }}
+  .badge {{ display: inline-block; border-radius: 20px; padding: 4px 12px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
+  .badge-vuln {{ background: #FDE8E8; color: var(--critical); border: 1px solid #F5C6C6; }}
+  .badge-safe {{ background: #E8F5ED; color: var(--success); border: 1px solid #C6E5CF; }}
 
-  .target-meta {{ display: flex; gap: 24px; padding: 14px 24px; background: var(--surface2); flex-wrap: wrap; }}
-  .meta-item {{ font-size: 0.82rem; }}
+  .target-meta {{ display: flex; gap: 28px; padding: 16px 24px; background: var(--surface2); flex-wrap: wrap; }}
+  .meta-item {{ font-size: 0.8rem; }}
   .meta-item span {{ color: var(--muted); }}
-  .meta-item strong {{ color: var(--text); }}
+  .meta-item strong {{ color: var(--text); font-weight: 600; }}
 
   .findings-list {{ padding: 20px 24px; }}
-  .finding {{ border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }}
+  .finding {{ border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; background: var(--surface); }}
   .finding-header {{ padding: 14px 18px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
   .severity-dot {{ width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }}
-  .finding-title {{ font-weight: 700; font-size: 0.95rem; flex: 1; }}
-  .technique-badge {{ background: rgba(124,58,237,0.15); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }}
+  .finding-title {{ font-weight: 600; font-size: 0.92rem; flex: 1; color: var(--text); }}
+  .technique-badge {{ background: #F0E8F8; color: #7C5BA3; border: 1px solid #DDD0EE; }}
   .conf-badge {{ background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }}
   .finding-body {{ padding: 0 18px 16px; border-top: 1px solid var(--border); }}
-  .finding-body p {{ margin-top: 12px; font-size: 0.875rem; color: #94a3b8; }}
-  .finding-body .evidence {{ font-family: 'Consolas', monospace; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 0.8rem; color: var(--accent); margin-top: 8px; word-break: break-all; }}
-  .remediation {{ background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.15); border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 0.85rem; color: #86efac; }}
+  .finding-body p {{ margin-top: 12px; font-size: 0.85rem; color: #6B5E53; line-height: 1.6; }}
+  .finding-body .evidence {{ font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 0.78rem; color: var(--accent); margin-top: 10px; word-break: break-all; line-height: 1.5; }}
+  .remediation {{ background: #EEF6F0; border: 1px solid #D0E8D6; border-radius: 8px; padding: 12px 14px; margin-top: 12px; font-size: 0.83rem; color: #3D6E4A; line-height: 1.5; }}
   .refs {{ margin-top: 10px; }}
-  .refs a {{ color: var(--accent); font-size: 0.8rem; text-decoration: none; margin-right: 12px; }}
+  .refs a {{ color: var(--accent); font-size: 0.78rem; text-decoration: none; margin-right: 12px; }}
   .refs a:hover {{ text-decoration: underline; }}
 
   .no-findings {{ padding: 28px 24px; text-align: center; color: var(--muted); }}
   .no-findings .icon {{ font-size: 2rem; margin-bottom: 8px; }}
 
-  .footer {{ text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }}
+  .footer {{ text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }}
 </style>
 </head>
 <body>
@@ -219,6 +219,9 @@ def _finding_html(f: Finding) -> str:
         links = " ".join(f'<a href="{r}" target="_blank">{r}</a>' for r in f.references)
         refs_html = f'<div class="refs">{links}</div>'
 
+    bg_map = {{"critical": "#FDE8E8", "high": "#FEF0E3", "medium": "#FDF5DC", "low": "#E3EEF7"}}
+    bg = bg_map.get(f.severity, "#F5F0EB")
+
     return f"""
 <div class="finding">
   <div class="finding-header">
@@ -226,7 +229,7 @@ def _finding_html(f: Finding) -> str:
     <div class="finding-title">{f.payload_name}</div>
     <span class="badge technique-badge">{f.technique}</span>
     <span class="badge conf-badge">{CONFIDENCE_LABEL.get(f.confidence, f.confidence)}</span>
-    <span class="badge" style="background:rgba(0,0,0,0.3);color:{color};border:1px solid {color}">{f.severity.upper()}</span>
+    <span class="badge" style="background:{bg};color:{color};border:1px solid {bg}">{f.severity.upper()}</span>
   </div>
   <div class="finding-body">
     <p>{f.description}</p>
