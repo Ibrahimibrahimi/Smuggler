@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HTTP Smuggler - Auth Configuration</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">Auth Setup</div>
+    <h1>Authentication Configuration</h1>
+    <p>Configure headers, cookies and session tokens for authenticated scans</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Headers Section -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>HTTP Headers</h2>
+        <p class="subtitle">Custom headers sent with every request (e.g. X-API-Key, User-Agent)</p>
+      </div>
+      <button class="btn btn-add" onclick="addRow('headers')">+ Add</button>
+    </div>
+    <div class="kv-labels"><span>Key / Name</span><span>Value</span></div>
+    <div id="headers-container"></div>
+    <div id="headers-empty" class="empty-state">No entries yet -- click "+ Add"</div>
+  </div>
+
+  <!-- Cookies Section -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Cookies</h2>
+        <p class="subtitle">Session cookies for authenticated scanning</p>
+      </div>
+      <button class="btn btn-add" onclick="addRow('cookies')">+ Add</button>
+    </div>
+    <div class="kv-labels"><span>Key / Name</span><span>Value</span></div>
+    <div id="cookies-container"></div>
+    <div id="cookies-empty" class="empty-state">No entries yet -- click "+ Add"</div>
+    <div class="raw-cookie-row">
+      <label>Or paste raw cookie string:</label>
+      <div class="raw-cookie-input">
+        <input type="text" id="raw-cookies" placeholder="key1=val1; key2=val2; ..."/>
+        <button class="btn btn-parse" onclick="parseRawCookies()">Parse</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Section -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Session / API Token</h2>
+        <p class="subtitle">Authorization header will be auto-built from token type + value</p>
+      </div>
+    </div>
+    <div class="token-row">
+      <label>Type:</label>
+      <select id="token-type">
+        <option value="Bearer" {{ 'selected' if config.get('token_type') == 'Bearer' else '' }}>Bearer</option>
+        <option value="Basic" {{ 'selected' if config.get('token_type') == 'Basic' else '' }}>Basic</option>
+        <option value="Custom" {{ 'selected' if config.get('token_type') == 'Custom' else '' }}>Custom</option>
+        <option value="None" {{ 'selected' if config.get('token_type') == 'None' else '' }}>None</option>
+      </select>
+      <label>Token value:</label>
+      <input type="password" id="token-value" value="{{ config.get('token', '') }}" placeholder="Enter token..."/>
+      <button class="btn btn-toggle" onclick="toggleToken()">Show</button>
+    </div>
+  </div>
+
+  <!-- Proxy Section -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Proxy Settings</h2>
+        <p class="subtitle">Route scan traffic through a proxy (Burp Suite, SOCKS5, etc.)</p>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="proxy-enabled" {{ 'checked' if config.get('proxy_enabled') else '' }} onchange="toggleProxy()"/>
+        <span class="toggle-slider"></span>
+        Enable
+      </label>
+    </div>
+    <div id="proxy-fields" class="{{ 'disabled' if not config.get('proxy_enabled') else '' }}">
+      <div class="field-row">
+        <label>Proxy URL:</label>
+        <input type="text" id="proxy-url" value="{{ config.get('proxy_url', 'http://127.0.0.1:8080') }}" placeholder="http://127.0.0.1:8080"/>
+      </div>
+      <div class="field-row">
+        <label>Username:</label>
+        <input type="text" id="proxy-user" value="{{ config.get('proxy_username', '') }}" placeholder="(optional)"/>
+        <label>Password:</label>
+        <input type="password" id="proxy-pass" value="{{ config.get('proxy_password', '') }}" placeholder="(optional)"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- SSL Section -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>SSL / TLS</h2>
+        <p class="subtitle">Disable for self-signed certs (common in internal/staging environments)</p>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="ssl-verify" {{ 'checked' if config.get('ssl_verify', True) else '' }}/>
+        <span class="toggle-slider"></span>
+        Verify SSL certificates
+      </label>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <div class="action-left">
+      <button class="btn btn-secondary" onclick="cancelConfig()">Cancel</button>
+    </div>
+    <div class="action-right">
+      <button class="btn btn-accent2" onclick="saveConfig()">Save Config Only</button>
+      <button class="btn btn-accent" onclick="saveConfig()">Save & Start Scan</button>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+const PREFILL_HEADERS = {{ config.get('headers', {}) | tojson }};
+const PREFILL_COOKIES = {{ config.get('cookies', {}) | tojson }};
+
+function addRow(section, key='', value='') {
+  const container = document.getElementById(section + '-container');
+  const empty = document.getElementById(section + '-empty');
+  if (empty) empty.style.display = 'none';
+
+  const row = document.createElement('div');
+  row.className = 'kv-row';
+  row.innerHTML = `
+    <input type="text" class="kv-key" placeholder="Key" value="${escapeHtml(key)}"/>
+    <span class="kv-sep">:</span>
+    <input type="text" class="kv-value" placeholder="Value" value="${escapeHtml(value)}"/>
+    <button class="btn-remove" onclick="removeRow(this)">&times;</button>
+  `;
+  container.appendChild(row);
+}
+
+function removeRow(btn) {
+  const row = btn.parentElement;
+  const container = row.parentElement;
+  row.remove();
+  if (container.children.length === 0) {
+    const section = container.id.replace('-container', '');
+    const empty = document.getElementById(section + '-empty');
+    if (empty) empty.style.display = 'block';
+  }
+}
+
+function getRows(section) {
+  const rows = document.getElementById(section + '-container').querySelectorAll('.kv-row');
+  const data = [];
+  rows.forEach(row => {
+    const key = row.querySelector('.kv-key').value.trim();
+    const value = row.querySelector('.kv-value').value.trim();
+    if (key) data.push({key, value});
+  });
+  return data;
+}
+
+function parseRawCookies() {
+  const raw = document.getElementById('raw-cookies').value.trim();
+  if (!raw) return;
+  raw.split(';').forEach(part => {
+    part = part.trim();
+    if (part.includes('=')) {
+      const [key, ...rest] = part.split('=');
+      addRow('cookies', key.trim(), rest.join('=').trim());
+    }
+  });
+  document.getElementById('raw-cookies').value = '';
+}
+
+function toggleToken() {
+  const input = document.getElementById('token-value');
+  const btn = event.target;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    btn.textContent = 'Show';
+  }
+}
+
+function toggleProxy() {
+  const fields = document.getElementById('proxy-fields');
+  const enabled = document.getElementById('proxy-enabled').checked;
+  fields.className = enabled ? '' : 'disabled';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function saveConfig() {
+  const data = {
+    headers: getRows('headers'),
+    cookies: getRows('cookies'),
+    token: document.getElementById('token-value').value.trim(),
+    token_type: document.getElementById('token-type').value,
+    proxy_enabled: document.getElementById('proxy-enabled').checked,
+    proxy_url: document.getElementById('proxy-url').value.trim(),
+    proxy_username: document.getElementById('proxy-user').value.trim(),
+    proxy_password: document.getElementById('proxy-pass').value.trim(),
+    ssl_verify: document.getElementById('ssl-verify').checked,
+  };
+
+  fetch('/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'ok') {
+      showStatus('Config saved! You can close this tab.', 'success');
+      setTimeout(() => window.close(), 2000);
+    }
+  })
+  .catch(e => showStatus('Error saving config: ' + e, 'error'));
+}
+
+function cancelConfig() {
+  fetch('/cancel', {method: 'POST'});
+  showStatus('Cancelled. You can close this tab.', 'muted');
+  setTimeout(() => window.close(), 1500);
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + type;
+  el.style.display = 'block';
+}
+
+// Load prefilled data on page load
+window.addEventListener('DOMContentLoaded', () => {
+  Object.entries(PREFILL_HEADERS).forEach(([k, v]) => addRow('headers', k, v));
+  Object.entries(PREFILL_COOKIES).forEach(([k, v]) => addRow('cookies', k, v));
+  toggleProxy();
+});
+</script>
+</body>
+</html>
