@@ -317,6 +317,79 @@ smuggler/
     └── generators.py   # JSON/HTML/PDF reports
 ```
 
+## Contributing
+
+Contributions are welcome! Here's how to contribute:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/your-username/Smuggler.git
+cd Smuggler
+
+# Install in development mode
+pip install -e ".[dev]"
+
+# Run tests
+pytest tests/ -v
+```
+
+### Adding New Techniques
+
+To add a new smuggling technique:
+
+1. Add payload to `smuggler/payloads/database.py`
+2. Create detector in `smuggler/scanner/detectors.py`
+3. Register detector in `smuggler/scanner/core.py`
+4. Add technique name to `TECHNIQUES_ALL` in `smuggler/cli.py`
+
+### Reporting Issues
+
+- Use GitHub Issues for bug reports
+- Include target type, error messages, and verbose output
+- Never post real credentials or sensitive target info
+
+## Roadmap
+
+- [ ] WebSocket smuggling detection
+- [ ] Async scanning with asyncio
+- [ ] Nuclei template integration
+- [ ] PDF report improvements
+- [ ] Custom payload support
+- [ ] Scan history and comparison
+
+## Technical Details
+
+### How Detection Works
+
+**Timing-Based Detection:**
+- Sends malformed requests that cause backend to wait
+- Measures response time vs baseline
+- Significant delay indicates backend is processing differently than frontend
+
+**Differential Response:**
+- Sends smuggling payloads and analyzes error responses
+- Unexpected status codes (400, 403, 501) with timing anomalies indicate vulnerability
+
+**HTTP/2 Downgrade:**
+- Tests if HTTP/2 requests with forbidden headers are processed
+- Detects frontend-to-backend protocol downgrade vulnerabilities
+
+### Raw TCP Requests
+
+Smuggler uses raw TCP sockets instead of high-level HTTP libraries. This is essential because:
+
+- HTTP libraries normalize headers (removing duplicates, fixing case)
+- Smuggling requires sending malformed headers that libraries would reject
+- Raw sockets give full control over the HTTP request format
+
 ## Disclaimer
 
 This tool is for authorized security testing and bug bounty hunting only. Always obtain proper authorization before scanning targets. The author is not responsible for misuse of this software.
