@@ -82,6 +82,174 @@ smuggler list-techniques
 smuggler version
 ```
 
+## Step-by-Step Tutorial
+
+### Step 1: Install the Tool
+
+```bash
+# Clone the repository
+git clone https://github.com/Ibrahimibrahimi/Smuggler.git
+cd Smuggler
+
+# Install in editable mode
+pip install -e .
+
+# Verify installation
+smuggler version
+```
+
+### Step 2: Your First Scan
+
+Start with a simple scan against a single target:
+
+```bash
+# Basic scan with default settings
+smuggler scan -t https://example.com
+```
+
+This will:
+1. Probe the target to check reachability
+2. Detect WAF/CDN and backend server
+3. Test all applicable smuggling techniques
+4. Generate JSON and HTML reports in `./results/`
+
+### Step 3: Understanding the Output
+
+**Console Output:**
+- Target info panel shows WAF, backend, HTTP/2 support, baseline response time
+- Findings table shows each detected vulnerability with severity and confidence
+- Summary shows total targets, vulnerable count, and report locations
+
+**Reports:**
+- Open the HTML report in your browser for a visual breakdown
+- Use the JSON report for automation or further analysis
+
+### Step 4: Scan Multiple Targets
+
+Create a `targets.txt` file with one URL per line:
+
+```
+https://target1.com
+https://target2.com
+https://api.target3.com
+https://staging.target4.com
+```
+
+Then scan all targets:
+
+```bash
+smuggler scan -T targets.txt
+```
+
+### Step 5: Authenticated Scanning
+
+For targets requiring login:
+
+```bash
+# Launch auth web UI
+smuggler scan -t https://target.com --auth
+```
+
+This opens a browser tab at `http://127.0.0.1:5555` where you can:
+
+1. **Add Headers**: Click "+ Add" to add custom headers (e.g., X-API-Key)
+2. **Add Cookies**: Paste raw cookie string or add key-value pairs
+3. **Set Token**: Choose Bearer/Basic/Custom and enter your token
+4. **Configure Proxy**: Enable and set proxy URL (e.g., Burp Suite at `http://127.0.0.1:8080`)
+5. **SSL Settings**: Toggle SSL verification for self-signed certs
+6. **Save**: Click "Save & Start Scan" or "Save Config Only"
+
+Your config is saved to `~/.http-smuggler/auth_config.yaml` for reuse.
+
+### Step 6: Use Saved Auth Config
+
+```bash
+# Reuse saved auth config without opening web UI
+smuggler scan -t https://target.com --auth-config ~/.http-smuggler/auth_config.yaml
+
+# Or manage auth config directly
+smuggler auth --show    # View saved config
+smuggler auth --clear   # Delete saved config
+```
+
+### Step 7: Target Specific Techniques
+
+Focus on specific smuggling techniques:
+
+```bash
+# Test only CL.TE and TE.CL
+smuggler scan -t https://target.com --techniques CL.TE,TE.CL
+
+# Test only HTTP/2 techniques
+smuggler scan -t https://target.com --techniques H2.CL,H2.TE,H2.RL
+
+# Test only CRLF injection
+smuggler scan -t https://target.com --techniques CRLF
+```
+
+### Step 8: Adjust Scan Settings
+
+```bash
+# Increase timeout for slow targets
+smuggler scan -t https://target.com --timeout 30
+
+# Use more threads for batch scanning
+smuggler scan -T targets.txt --threads 20
+
+# Add delay between requests to avoid rate limiting
+smuggler scan -T targets.txt --delay 1.0
+
+# Save reports to custom directory
+smuggler scan -t https://target.com -o /path/to/reports
+```
+
+### Step 9: Debug Mode
+
+When things aren't working as expected:
+
+```bash
+# Verbose output (-v)
+smuggler scan -t https://target.com -v
+
+# Debug output (-vv) shows all errors and H2 detection details
+smuggler scan -t https://target.com -vv
+```
+
+### Step 10: Read the Reports
+
+**JSON Report** contains:
+- Target info (WAF, backend, HTTP/2 support)
+- Each finding with technique, severity, confidence, evidence
+- Remediation steps and reference links
+
+**HTML Report** provides:
+- Visual dashboard with summary cards
+- Per-target breakdown with findings
+- Color-coded severity badges
+- Copy-ready evidence and remediation
+
+### Example Workflow
+
+Complete bug bounty workflow:
+
+```bash
+# 1. Create target list
+echo "https://program-target.com" > targets.txt
+echo "https://api.program-target.com" >> targets.txt
+
+# 2. Configure auth (if needed)
+smuggler auth
+
+# 3. Run full scan with all techniques
+smuggler scan -T targets.txt -a -v -o ./bounty-results
+
+# 4. Review HTML report in browser
+open ./bounty-results/smuggler_report_*.html
+
+# 5. Check JSON for automation
+cat ./bounty-results/smuggler_report_*.json | python -m json.tool
+```
+
 ## CLI Options
 
 | Option | Description |
