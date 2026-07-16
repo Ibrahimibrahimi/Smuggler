@@ -291,9 +291,6 @@ TECHNIQUES = {
     "CRLF":  [p for p in ALL_PAYLOADS if p.technique == "CRLF"],
 }
 
-SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-
-
 def get_payloads_by_technique(technique: str) -> List[SmugglePayload]:
     return TECHNIQUES.get(technique.upper(), [])
 

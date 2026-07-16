@@ -4,13 +4,11 @@ Flask-based authentication configuration interface.
 Replaces the Tkinter GUI for broader compatibility.
 """
 
-import json
 import threading
 import webbrowser
 from typing import Optional
-from dataclasses import asdict
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 
 from smuggler.config.manager import AuthConfig, save_auth_config
 
@@ -47,7 +45,9 @@ def index():
 def save():
     global _auth_result
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"status": "error", "message": "Invalid JSON"}), 400
 
     headers = {}
     for h in data.get("headers", []):

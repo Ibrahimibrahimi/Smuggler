@@ -216,12 +216,6 @@ def fingerprint_backend(headers: Dict[str, str]) -> Optional[str]:
     return None
 
 
-def get_baseline_response_time(url: str, headers: Dict[str, str], timeout: float = 10.0) -> float:
-    """Send a normal GET to establish baseline response time"""
-    response = send_raw_http(url, "GET", headers, "", timeout=timeout)
-    return response.elapsed
-
-
 def is_timing_anomaly(baseline: float, actual: float, threshold: float = 5.0) -> bool:
     """True if actual response time is suspiciously slower than baseline"""
     return actual > (baseline + threshold)

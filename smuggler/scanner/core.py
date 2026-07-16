@@ -16,7 +16,6 @@ from smuggler.scanner.http_utils import (
     send_raw_http,
     detect_waf,
     fingerprint_backend,
-    get_baseline_response_time,
 )
 from smuggler.scanner.detectors import (
     Finding,
@@ -106,7 +105,7 @@ def _scan_single_target(
     # Build auth headers / cookies
     extra_headers: Dict[str, str] = {}
     cookies: Dict[str, str] = {}
-    verify_ssl = False
+    verify_ssl = True
     if cfg.use_auth and cfg.auth:
         extra_headers = cfg.auth.get_auth_headers()
         cookies = cfg.auth.get_cookies_dict()
@@ -139,7 +138,7 @@ def _scan_single_target(
         ]
 
     total_payloads = len(payloads_to_test)
-    result.techniques_tested = list({p.technique for p in payloads_to_test})
+    result.techniques_tested = list(dict.fromkeys(p.technique for p in payloads_to_test))
 
     # Step 4: Run detectors
     for idx, payload in enumerate(payloads_to_test):
@@ -194,7 +193,10 @@ def _scan_single_target(
             time.sleep(cfg.delay)
 
     result.finished_at = datetime.now().isoformat()
-    result.duration = sum(f.elapsed for f in result.findings)
+    from datetime import datetime as dt
+    started = dt.fromisoformat(started_at)
+    finished = dt.fromisoformat(result.finished_at)
+    result.duration = (finished - started).total_seconds()
 
     if progress_cb:
         progress_cb("Done", total_payloads, total_payloads)

@@ -5,24 +5,15 @@ For authorized security testing and bug bounty hunting only.
 """
 
 import sys
-import os
 import click
-from datetime import datetime
-from pathlib import Path
 from typing import Optional, List
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
-from rich.text import Text
-from rich.columns import Columns
 from rich.rule import Rule
 from rich import box
-from rich.syntax import Syntax
-from rich.live import Live
-from rich.layout import Layout
-from rich.padding import Padding
 
 from smuggler import __version__
 
@@ -467,10 +458,9 @@ def list_techniques():
 
 
 @cli.command("auth")
-@click.option("--save-only", is_flag=True, help="Just save the config without scanning")
 @click.option("--show",      is_flag=True, help="Display current saved auth config")
 @click.option("--clear",     is_flag=True, help="Delete saved auth config")
-def auth_cmd(save_only, show, clear):
+def auth_cmd(show, clear):
     """
     Manage authentication configuration (opens web UI editor)
 

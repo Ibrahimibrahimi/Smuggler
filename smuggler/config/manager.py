@@ -53,8 +53,11 @@ class AuthConfig:
             return None
         url = self.proxy_url
         if self.proxy_username and self.proxy_password:
-            proto, rest = url.split("://", 1)
-            url = f"{proto}://{self.proxy_username}:{self.proxy_password}@{rest}"
+            if "://" in url:
+                proto, rest = url.split("://", 1)
+                url = f"{proto}://{self.proxy_username}:{self.proxy_password}@{rest}"
+            else:
+                url = f"http://{self.proxy_username}:{self.proxy_password}@{url}"
         return {"http": url, "https": url}
 
 
@@ -67,12 +70,12 @@ class ScanConfig:
     method: str = "POST"
 
     # Techniques
-    techniques: List[str] = field(default_factory=lambda: ["CL.TE", "TE.CL", "TE.TE", "H2.CL", "H2.TE", "CRLF"])
+    techniques: List[str] = field(default_factory=lambda: ["CL.TE", "TE.CL", "TE.TE", "H2.CL", "H2.TE", "H2.RL", "CRLF"])
     timeout: float = 10.0
     timing_threshold: float = 5.0   # seconds extra to confirm timing-based vuln
     retries: int = 2
     threads: int = 5
-    delay: float = 0.5              # delay between requests (rate limiting)
+    delay: float = 0.3              # delay between requests (rate limiting)
 
     # Output
     output_dir: str = "./results"

@@ -4,7 +4,6 @@ Produces JSON, HTML, and PDF output from scan results
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
@@ -12,6 +11,7 @@ from dataclasses import asdict
 
 from smuggler.scanner.core import ScanResult
 from smuggler.scanner.detectors import Finding, Confidence
+from smuggler import __version__
 
 
 # --- Helpers ---
@@ -64,7 +64,7 @@ def generate_json(results: List[ScanResult], output_dir: str) -> str:
 
     report = {
         "tool": "HTTP Request Smuggler",
-        "version": "1.0.0",
+        "version": __version__,
         "generated_at": datetime.now().isoformat(),
         "summary": {
             "total_targets": len(results),
@@ -255,7 +255,7 @@ def _target_html(r: ScanResult) -> str:
         findings_html = "".join(_finding_html(f) for f in r.findings)
         body = f'<div class="findings-list">{findings_html}</div>'
     else:
-        body = '<div class="no-findings"><div class="icon">No vulnerabilities detected for this target</div></div>'
+        body = '<div class="no-findings"><div class="icon"></div>No vulnerabilities detected for this target</div>'
 
     return f"""
 <div class="target-block">

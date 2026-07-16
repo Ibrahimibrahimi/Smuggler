@@ -69,7 +69,7 @@
       </select>
       <label>Token value:</label>
       <input type="password" id="token-value" value="{{ config.get('token', '') }}" placeholder="Enter token..."/>
-      <button class="btn btn-toggle" onclick="toggleToken()">Show</button>
+      <button class="btn btn-toggle" onclick="toggleToken(event)">Show</button>
     </div>
   </div>
 
@@ -123,7 +123,7 @@
       <button class="btn btn-secondary" onclick="cancelConfig()">Cancel</button>
     </div>
     <div class="action-right">
-      <button class="btn btn-accent2" onclick="saveConfig()">Save Config Only</button>
+      <button class="btn btn-accent2" onclick="saveConfigOnly()">Save Config Only</button>
       <button class="btn btn-accent" onclick="saveConfig()">Save & Start Scan</button>
     </div>
   </div>
@@ -186,7 +186,7 @@ function parseRawCookies() {
   document.getElementById('raw-cookies').value = '';
 }
 
-function toggleToken() {
+function toggleToken(event) {
   const input = document.getElementById('token-value');
   const btn = event.target;
   if (input.type === 'password') {
@@ -211,17 +211,7 @@ function escapeHtml(str) {
 }
 
 function saveConfig() {
-  const data = {
-    headers: getRows('headers'),
-    cookies: getRows('cookies'),
-    token: document.getElementById('token-value').value.trim(),
-    token_type: document.getElementById('token-type').value,
-    proxy_enabled: document.getElementById('proxy-enabled').checked,
-    proxy_url: document.getElementById('proxy-url').value.trim(),
-    proxy_username: document.getElementById('proxy-user').value.trim(),
-    proxy_password: document.getElementById('proxy-pass').value.trim(),
-    ssl_verify: document.getElementById('ssl-verify').checked,
-  };
+  const data = collectData();
 
   fetch('/save', {
     method: 'POST',
@@ -236,6 +226,37 @@ function saveConfig() {
     }
   })
   .catch(e => showStatus('Error saving config: ' + e, 'error'));
+}
+
+function saveConfigOnly() {
+  const data = collectData();
+
+  fetch('/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.status === 'ok') {
+      showStatus('Config saved successfully!', 'success');
+    }
+  })
+  .catch(e => showStatus('Error saving config: ' + e, 'error'));
+}
+
+function collectData() {
+  return {
+    headers: getRows('headers'),
+    cookies: getRows('cookies'),
+    token: document.getElementById('token-value').value.trim(),
+    token_type: document.getElementById('token-type').value,
+    proxy_enabled: document.getElementById('proxy-enabled').checked,
+    proxy_url: document.getElementById('proxy-url').value.trim(),
+    proxy_username: document.getElementById('proxy-user').value.trim(),
+    proxy_password: document.getElementById('proxy-pass').value.trim(),
+    ssl_verify: document.getElementById('ssl-verify').checked,
+  };
 }
 
 function cancelConfig() {

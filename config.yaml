@@ -12,6 +12,7 @@ techniques:
   - "TE.TE"
   - "H2.CL"
   - "H2.TE"
+  - "H2.RL"
   - "CRLF"
 
 timeout: 10.0
