@@ -1,0 +1,32 @@
+# Default scan configuration for HTTP Request Smuggler
+# Place in ~/.http-smuggler/config.yaml or pass via --config
+
+target: ""
+targets_file: ""
+path: "/"
+method: "POST"
+
+techniques:
+  - "CL.TE"
+  - "TE.CL"
+  - "TE.TE"
+  - "H2.CL"
+  - "H2.TE"
+  - "CRLF"
+
+timeout: 10.0
+timing_threshold: 5.0
+retries: 2
+threads: 5
+delay: 0.5
+
+output_dir: "./results"
+output_formats:
+  - "json"
+  - "html"
+verbose: 0
+
+follow_redirects: false
+detect_waf: true
+fingerprint_backend: true
+confirm_vulns: true
