@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "http-request-smuggler"
+version = "1.0.0"
+description = "HTTP Request Smuggling Vulnerability Scanner for bug bounty hunting"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "idwahman", email = "ibrahim.id-wahman@edu.uiz.ac.ma"},
+]
+keywords = ["security", "bug-bounty", "request-smuggling", "http", "vulnerability-scanner"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "requests>=2.31.0",
+    "rich>=13.7.0",
+    "click>=8.1.7",
+    "pyyaml>=6.0.1",
+    "httpx[http2]>=0.27.0",
+    "jinja2>=3.1.3",
+    "weasyprint>=61.2",
+    "flask>=3.0.0",
+    "colorama>=0.4.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+smuggler = "smuggler.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/Ibrahimibrahimi/Smuggler"
+Issues = "https://github.com/Ibrahimibrahimi/Smuggler/issues"
+
+[tool.setuptools.packages.find]
+include = ["smuggler*"]
