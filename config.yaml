@@ -1,32 +1,41 @@
-# Default scan configuration for HTTP Request Smuggler
-# Place in ~/.http-smuggler/config.yaml or pass via --config
+# HTTP Smuggler — Default Scan Configuration
+# Place this file at ~/.http-smuggler/config.yaml or pass via --config
 
-target: ""
-targets_file: ""
+# ── Target ─────────────────────────────────────────────────────────────────────
+# target: "https://example.com"      # single target (override with -t)
+# targets_file: "targets.txt"        # batch file   (override with -T)
 path: "/"
 method: "POST"
 
+# ── Techniques ─────────────────────────────────────────────────────────────────
+# Supported: CL.TE, TE.CL, TE.TE, H2.CL, H2.TE, H2.RL, CRLF
 techniques:
-  - "CL.TE"
-  - "TE.CL"
-  - "TE.TE"
-  - "H2.CL"
-  - "H2.TE"
-  - "H2.RL"
-  - "CRLF"
+  - CL.TE
+  - TE.CL
+  - TE.TE
+  - H2.CL
+  - H2.TE
+  - CRLF
 
-timeout: 10.0
-timing_threshold: 5.0
+# ── Timing ─────────────────────────────────────────────────────────────────────
+timeout: 10.0            # seconds before request is considered timed out
+timing_threshold: 5.0   # seconds above baseline to flag as timing anomaly
+delay: 0.3              # seconds between requests (rate limiting)
 retries: 2
-threads: 5
-delay: 0.5
 
+# ── Performance ────────────────────────────────────────────────────────────────
+threads: 5              # concurrent threads for batch scanning
+
+# ── Output ─────────────────────────────────────────────────────────────────────
 output_dir: "./results"
 output_formats:
-  - "json"
-  - "html"
-verbose: 0
+  - json
+  - html
+# - pdf                  # uncomment to enable PDF (requires: pip install weasyprint)
 
+verbose: 0              # 0=normal, 1=verbose, 2=debug
+
+# ── Scan Behavior ──────────────────────────────────────────────────────────────
 follow_redirects: false
 detect_waf: true
 fingerprint_backend: true

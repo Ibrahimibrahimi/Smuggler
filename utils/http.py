@@ -7,7 +7,7 @@ import socket
 import ssl
 import time
 import re
-from typing import Optional, Tuple, Dict, List, Union
+from typing import Optional, Tuple, Dict
 from urllib.parse import urlparse
 from dataclasses import dataclass
 
@@ -66,19 +66,15 @@ def parse_url(url: str) -> Tuple[str, int, str, bool]:
 def send_raw_http(
     url: str,
     method: str,
-    headers: Union[Dict[str, str], List[Tuple[str, str]]],
+    headers: Dict[str, str],
     body: str,
     timeout: float = 10.0,
-    verify_ssl: bool = True,
-    raw_headers: Optional[List[Tuple[str, str]]] = None,
+    verify_ssl: bool = False,
 ) -> RawResponse:
     """
     Send a raw TCP HTTP request (bypasses urllib3 normalization).
     This is essential for smuggling tests — high-level HTTP libraries
     sanitize/normalize headers which would prevent sending malformed requests.
-
-    Args:
-        raw_headers: If provided, used instead of headers dict. Allows duplicate header names.
     """
     host, port, path, is_https = parse_url(url)
     start = time.time()
@@ -88,18 +84,8 @@ def send_raw_http(
 
     request_lines = [f"{method} {path} HTTP/1.1"]
     request_lines.append(f"Host: {host}")
-
-    # Use raw_headers if provided (supports duplicate headers), else use dict
-    if raw_headers:
-        for k, v in raw_headers:
-            request_lines.append(f"{k}: {v}")
-    elif isinstance(headers, dict):
-        for k, v in headers.items():
-            request_lines.append(f"{k}: {v}")
-    else:
-        for k, v in headers:
-            request_lines.append(f"{k}: {v}")
-
+    for k, v in headers.items():
+        request_lines.append(f"{k}: {v}")
     request_lines.append(f"Connection: close")
     request_lines.append("")
     request_lines.append(raw_body)
@@ -214,6 +200,12 @@ def fingerprint_backend(headers: Dict[str, str]) -> Optional[str]:
             if re.search(pattern, server, re.IGNORECASE):
                 return backend_name
     return None
+
+
+def get_baseline_response_time(url: str, headers: Dict[str, str], timeout: float = 10.0) -> float:
+    """Send a normal GET to establish baseline response time"""
+    response = send_raw_http(url, "GET", headers, "", timeout=timeout)
+    return response.elapsed
 
 
 def is_timing_anomaly(baseline: float, actual: float, threshold: float = 5.0) -> bool:

@@ -10,14 +10,15 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Callable
 from datetime import datetime
 
-from smuggler.config.manager import ScanConfig
-from smuggler.payloads.database import ALL_PAYLOADS, SmugglePayload, TECHNIQUES
-from smuggler.scanner.http_utils import (
+from config.manager import ScanConfig
+from payloads.database import ALL_PAYLOADS, SmugglePayload, TECHNIQUES
+from utils.http import (
     send_raw_http,
     detect_waf,
     fingerprint_backend,
+    get_baseline_response_time,
 )
-from smuggler.scanner.detectors import (
+from scanner.detectors import (
     Finding,
     detect_cl_te,
     detect_te_cl,
@@ -67,11 +68,11 @@ class ScanResult:
 ProgressCallback = Callable[[str, int, int], None]
 
 
-def _probe_target(url: str, extra_headers: Dict, timeout: float, verify_ssl: bool = True) -> TargetInfo:
+def _probe_target(url: str, extra_headers: Dict, timeout: float) -> TargetInfo:
     """Probe target: reachability, WAF, backend, baseline timing"""
     info = TargetInfo(url=url)
     try:
-        resp = send_raw_http(url, "GET", extra_headers, "", timeout=timeout, verify_ssl=verify_ssl)
+        resp = send_raw_http(url, "GET", extra_headers, "", timeout=timeout)
         if resp.error and resp.status_code == 0:
             info.reachable = False
             info.error = resp.error
@@ -105,16 +106,14 @@ def _scan_single_target(
     # Build auth headers / cookies
     extra_headers: Dict[str, str] = {}
     cookies: Dict[str, str] = {}
-    verify_ssl = True
     if cfg.use_auth and cfg.auth:
         extra_headers = cfg.auth.get_auth_headers()
         cookies = cfg.auth.get_cookies_dict()
-        verify_ssl = cfg.auth.ssl_verify
 
     # Step 1: Probe target
     if progress_cb:
         progress_cb("Probing target...", 0, 1)
-    target_info = _probe_target(url, extra_headers, cfg.timeout, verify_ssl=verify_ssl)
+    target_info = _probe_target(url, extra_headers, cfg.timeout)
     result.target_info = target_info
     result.total_requests += 1
 
@@ -138,7 +137,7 @@ def _scan_single_target(
         ]
 
     total_payloads = len(payloads_to_test)
-    result.techniques_tested = list(dict.fromkeys(p.technique for p in payloads_to_test))
+    result.techniques_tested = list({p.technique for p in payloads_to_test})
 
     # Step 4: Run detectors
     for idx, payload in enumerate(payloads_to_test):
@@ -152,32 +151,26 @@ def _scan_single_target(
                 finding = detect_cl_te(
                     url, payload, extra_headers, cookies,
                     cfg.timeout, baseline, cfg.timing_threshold,
-                    verify_ssl=verify_ssl,
                 )
             elif payload.technique == "TE.CL":
                 finding = detect_te_cl(
                     url, payload, extra_headers, cookies,
                     cfg.timeout, baseline, cfg.timing_threshold,
-                    verify_ssl=verify_ssl,
                 )
             elif payload.technique in ("TE.TE",):
                 finding = detect_te_te(
                     url, payload, extra_headers, cookies,
                     cfg.timeout, baseline, cfg.timing_threshold,
-                    verify_ssl=verify_ssl,
                 )
             elif payload.technique in ("H2.CL", "H2.TE", "H2.RL"):
                 finding = detect_h2_smuggling(
                     url, payload, extra_headers, cookies,
                     cfg.timeout, baseline,
-                    verify_ssl=verify_ssl,
-                    verbose=cfg.verbose,
                 )
             elif payload.technique == "CRLF":
                 finding = detect_crlf(
                     url, payload, extra_headers, cookies,
                     cfg.timeout, baseline,
-                    verify_ssl=verify_ssl,
                 )
 
             result.total_requests += 1
@@ -193,10 +186,7 @@ def _scan_single_target(
             time.sleep(cfg.delay)
 
     result.finished_at = datetime.now().isoformat()
-    from datetime import datetime as dt
-    started = dt.fromisoformat(started_at)
-    finished = dt.fromisoformat(result.finished_at)
-    result.duration = (finished - started).total_seconds()
+    result.duration = sum(f.elapsed for f in result.findings)
 
     if progress_cb:
         progress_cb("Done", total_payloads, total_payloads)

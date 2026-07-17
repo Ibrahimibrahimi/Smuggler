@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 from enum import Enum
 
-from smuggler.scanner.http_utils import send_raw_http, RawResponse, is_timing_anomaly
-from smuggler.payloads.database import SmugglePayload
+from utils.http import send_raw_http, RawResponse, is_timing_anomaly
+from payloads.database import SmugglePayload
 
 
 class Confidence(str, Enum):
@@ -98,7 +98,6 @@ def detect_cl_te(
     timeout: float,
     baseline_time: float,
     timing_threshold: float,
-    verify_ssl: bool = True,
 ) -> Optional[Finding]:
     """
     CL.TE detection: send request with both Content-Length and Transfer-Encoding.
@@ -113,7 +112,7 @@ def detect_cl_te(
     timing_headers = {**headers, "Content-Length": "4", "Transfer-Encoding": "chunked"}
     timing_body = "1\r\nA"  # No terminator — backend waits
 
-    resp = send_raw_http(url, "POST", timing_headers, timing_body, timeout=timeout, verify_ssl=verify_ssl)
+    resp = send_raw_http(url, "POST", timing_headers, timing_body, timeout=timeout)
 
     if resp.error == "TIMEOUT" or is_timing_anomaly(baseline_time, resp.elapsed, timing_threshold):
         return Finding(
@@ -134,7 +133,7 @@ def detect_cl_te(
 
     # Differential response: send smuggled prefix, check next request status
     headers2 = {**headers}
-    resp2 = send_raw_http(url, "POST", headers2, payload.body, timeout=timeout, verify_ssl=verify_ssl)
+    resp2 = send_raw_http(url, "POST", headers2, payload.body, timeout=timeout)
 
     if resp2.status_code in (400, 403, 405, 501) and resp2.elapsed > baseline_time * 1.5:
         return Finding(
@@ -164,7 +163,6 @@ def detect_te_cl(
     timeout: float,
     baseline_time: float,
     timing_threshold: float,
-    verify_ssl: bool = True,
 ) -> Optional[Finding]:
     """
     TE.CL detection: front-end uses Transfer-Encoding, back-end uses Content-Length.
@@ -182,7 +180,7 @@ def detect_te_cl(
     }
     timing_body = "0\r\n\r\nX"  # Frontend reads chunk 0 (done), backend wants 6 bytes
 
-    resp = send_raw_http(url, "POST", timing_headers, timing_body, timeout=timeout, verify_ssl=verify_ssl)
+    resp = send_raw_http(url, "POST", timing_headers, timing_body, timeout=timeout)
 
     if resp.error == "TIMEOUT" or is_timing_anomaly(baseline_time, resp.elapsed, timing_threshold):
         return Finding(
@@ -212,21 +210,16 @@ def detect_te_te(
     timeout: float,
     baseline_time: float,
     timing_threshold: float,
-    verify_ssl: bool = True,
 ) -> Optional[Finding]:
     """
     TE.TE: both front and back use Transfer-Encoding, but obfuscation causes one
-    to ignore the header — falls back to Content-Length -> desync
+    to ignore the header — falls back to Content-Length → desync
     """
     headers = {**extra_headers, **payload.headers}
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
-    # Use raw_headers if payload has them (for duplicate header payloads)
-    resp = send_raw_http(
-        url, "POST", headers, payload.body, timeout=timeout, verify_ssl=verify_ssl,
-        raw_headers=payload.raw_headers if payload.raw_headers else None,
-    )
+    resp = send_raw_http(url, "POST", headers, payload.body, timeout=timeout)
 
     if resp.error == "TIMEOUT" or is_timing_anomaly(baseline_time, resp.elapsed, timing_threshold):
         return Finding(
@@ -273,16 +266,10 @@ def detect_h2_smuggling(
     cookies: Dict[str, str],
     timeout: float,
     baseline_time: float,
-    verify_ssl: bool = True,
-    verbose: int = 0,
 ) -> Optional[Finding]:
     """
     HTTP/2 downgrade smuggling: attempt H2 request with forbidden headers.
     Uses httpx with HTTP/2 support.
-
-    Note: Full H2 smuggling (especially H2.RL pseudo-header injection) requires
-    raw HTTP/2 frame construction via the h2 library. This detection is limited
-    to what httpx can express.
     """
     try:
         import httpx
@@ -292,7 +279,7 @@ def detect_h2_smuggling(
             headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
         start = time.time()
-        with httpx.Client(http2=True, verify=verify_ssl, timeout=timeout) as client:
+        with httpx.Client(http2=True, verify=False, timeout=timeout) as client:
             resp = client.post(url, headers=headers, content=payload.body.encode())
         elapsed = time.time() - start
 
@@ -313,13 +300,9 @@ def detect_h2_smuggling(
                 references=payload.references,
             )
     except ImportError:
-        if verbose >= 2:
-            pass  # httpx[http2] not installed — silently skip
-    except Exception as e:
-        if verbose >= 2:
-            # Log the error in debug mode instead of silently swallowing
-            import sys
-            print(f"[DEBUG] H2 detection error for {payload.name}: {e}", file=sys.stderr)
+        pass
+    except Exception:
+        pass
 
     return None
 
@@ -331,14 +314,13 @@ def detect_crlf(
     cookies: Dict[str, str],
     timeout: float,
     baseline_time: float,
-    verify_ssl: bool = True,
 ) -> Optional[Finding]:
     """CRLF injection detection in header values"""
     headers = {**extra_headers, **payload.headers}
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
-    resp = send_raw_http(url, "POST", headers, payload.body, timeout=timeout, verify_ssl=verify_ssl)
+    resp = send_raw_http(url, "POST", headers, payload.body, timeout=timeout)
 
     # If the injected TE header was processed, we might see chunked response behavior
     if "transfer-encoding" in resp.headers and is_timing_anomaly(baseline_time, resp.elapsed, 3.0):
