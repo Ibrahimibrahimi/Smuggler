@@ -1,6 +1,6 @@
 """
 Report Generators
-Produces JSON, HTML, and PDF output from scan results
+Produces JSON, HTML, PDF, and Markdown output from scan results
 """
 
 import json
@@ -12,6 +12,7 @@ from dataclasses import asdict
 from smuggler.scanner.core import ScanResult
 from smuggler.scanner.detectors import Finding, Confidence
 from smuggler import __version__
+from smuggler.reports.markdown_generator import generate_markdown
 
 
 # --- Helpers ---
@@ -339,6 +340,8 @@ def generate_reports(results: List[ScanResult], output_dir: str, formats: List[s
                 generated["html"] = path
             elif fmt == "pdf":
                 generated["pdf"] = generate_pdf(results, output_dir)
+            elif fmt == "markdown":
+                generated["markdown"] = generate_markdown(results, output_dir)
         except Exception as e:
             generated[fmt] = f"ERROR: {e}"
     return generated
